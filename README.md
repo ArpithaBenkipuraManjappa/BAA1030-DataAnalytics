@@ -12,3 +12,6 @@ Top 20 Countries with Highest Life Expectancy:
 
 World Map of Life Expectancy: 
                               A world map visualization illustrates regional differences, with North America, Europe, and parts of Asia showing higher life expectancy compared to many African nations, spotlighting global health disparities.
+
+#Please download the 110m_cultural.zip to local repo and extract the file.
+#Before rendering the code, make sure you change the path of map file.
