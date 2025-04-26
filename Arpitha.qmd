@@ -1,0 +1,202 @@
+---
+title: "<div style='text-align: center;'>Analyzing Global Health Disparities: UNICEF’s Role in Tracking Child Mortality and Life Expectancy</div>"
+author: "Name: Arpitha Benkipura Manjappa | Student ID: A00047887"
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-tools: true
+    embed-resources: true
+    echo: true
+    theme: cosmo
+    fig-align: center
+    number-sections: true
+jupyter: python3
+---
+# Introduction
+
+<div style="text-align: justify;">
+*Children’s health is a vital indicator of a country’s overall progress.*  
+UNICEF data provides insights into how life expectancy and child mortality rates are influenced by economic status health care access combined with geographic location worldwide. Visual research methods provide understanding about how health conditions spread across the world while revealing health inequality patterns.
+</div>
+
+---
+# Dataset overview 
+
+```{python}
+#| echo: true
+#| include: false
+import warnings
+warnings.filterwarnings("ignore")
+
+#| echo: true
+#| label: load-data
+#| fig-cap: "Loading and Cleaning UNICEF Datasets"
+
+# Import libraries
+import pandas as pd
+import plotnine as p9
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load UNICEF health indicator datasets and country-level metadata
+indicator_1 = pd.read_csv("unicef_indicator_1.csv")
+indicator_2 = pd.read_csv("unicef_indicator_2.csv")
+metadata = pd.read_csv("unicef_metadata.csv")
+
+# Clean missing values from key columns
+indicator_1_clean = indicator_1.dropna(subset=["obs_value"])
+indicator_2_clean = indicator_2.dropna(subset=["obs_value"])
+
+# Convert observation values to numeric (if not already)
+indicator_1_clean["obs_value"] = pd.to_numeric(indicator_1_clean["obs_value"], errors="coerce")
+indicator_2_clean["obs_value"] = pd.to_numeric(indicator_2_clean["obs_value"], errors="coerce")
+
+# Filter datasets for relevant indicators: maternal health and child mortality
+maternal_health = indicator_1_clean[indicator_1_clean["indicator"].str.contains("ANC", na=False)]
+child_mortality = indicator_2_clean[indicator_2_clean["indicator"].str.contains("Deaths aged", na=False)]
+
+```
+---
+# Scatterplot of GDP vs Life Expectancy
+<div style="text-align: justify;">
+Figure below illustrates the relationship between a country's GDP per capita and its average life expectancy. The scatterplot demonstrates a clear positive correlation, indicating that higher national income levels are generally associated with longer life spans. The regression line further emphasizes this trend, suggesting that economic development plays a critical role in improving health outcomes.
+</div>
+```{python}
+#| echo: true
+#| fig-cap: "Scatterplot of GDP vs Life Expectancy with Linear Regression Line"
+#| label: fig-gdp-life
+
+# Filter metadata for countries with both GDP and Life Expectancy data
+scatter_data = metadata.dropna(subset=["GDP per capita (constant 2015 US$)", "Life expectancy at birth, total (years)"])
+
+# Create scatterplot showing relationship between GDP and Life Expectancy
+# This figure illustrates how higher GDP is generally associated with longer life expectancy
+scatter_plot = (
+    p9.ggplot(scatter_data, p9.aes(x="GDP per capita (constant 2015 US$)", y="Life expectancy at birth, total (years)")) +
+    p9.geom_point(color="blue", alpha=0.7, size=3) +  # Data points
+    p9.geom_smooth(method="lm", color="red", size=1.5) +  # Regression line
+    p9.theme_minimal() +
+    p9.theme(
+        plot_title=p9.element_text(size=16, face="bold"),
+        axis_title=p9.element_text(size=12),
+        axis_text=p9.element_text(size=10),
+        panel_grid_major=p9.element_line(color="gray", linetype="--", size=0.5)
+    ) +
+    p9.labs(
+        title="GDP vs Life Expectancy",
+        x="GDP per capita (USD)",
+        y="Life Expectancy (Years)"
+    )
+)
+
+scatter_plot
+```
+---
+
+# Line Chart Showing Global Child Mortality Trend Over Time
+<div style="text-align: justify;">
+The figure below presents a time series analysis of global child mortality rates. The chart highlights a consistent decline over the years, reflecting progress in public health interventions, access to healthcare, and maternal-child services. Despite this positive trend, disparities may still exist among regions.
+</div>
+```{python}
+#| echo: true
+#| fig-cap: "Line Chart Showing Global Child Mortality Trend Over Time"
+#| label: fig-child-mortality
+
+# Group child mortality data by year and compute average global value
+child_mortality_trend = child_mortality.groupby("time_period")["obs_value"].mean().reset_index()
+
+# Plot time series of child mortality rates to show progress over the years
+# This figure reveals the steady decline in child deaths globally over time
+time_series = (
+    p9.ggplot(child_mortality_trend, p9.aes(x="time_period", y="obs_value")) +
+    p9.geom_line(color="steelblue", size=1.5) +  # Line chart
+    p9.geom_point(color="red", size=4) +  # Highlight data points
+    p9.theme_minimal() +
+    p9.theme(
+        plot_title=p9.element_text(size=16, face="bold"),
+        axis_title=p9.element_text(size=12),
+        axis_text=p9.element_text(size=10),
+        panel_grid_major=p9.element_line(color="gray", linetype="--", size=0.5)
+    ) +
+    p9.labs(
+        title="Child Mortality Trend Over Time",
+        x="Year",
+        y="Deaths per 1000 Children"
+    )
+)
+
+time_series
+```
+---
+
+
+# Bar Chart of Top 20 Countries with Highest Life Expectancy
+
+<div style="text-align: justify;">
+The figure below shows the top 20 countries with the highest life expectancy based on the latest available data. These nations tend to be economically developed with robust healthcare systems, higher educational attainment, and better living conditions. The visualization emphasizes the stark contrasts between countries in terms of health equity and longevity.
+</div>
+
+```{python}
+#| echo: true
+#| fig-cap: "Bar Chart of Top 20 Countries with Highest Life Expectancy"
+#| label: fig-life-expectancy
+
+# Extract latest available life expectancy data per country
+latest_metadata = metadata.groupby("country").last().reset_index()
+
+# Select top 20 countries with highest life expectancy
+top_life_expectancy = latest_metadata.nlargest(20, "Life expectancy at birth, total (years)")
+
+# Bar chart to compare top-performing countries in terms of life span
+# This visualization helps highlight where people are living longest and why
+plt.figure(figsize=(14, 8))
+sns.barplot(
+    data=top_life_expectancy,
+    x="Life expectancy at birth, total (years)",
+    y="country",
+    palette="Greens_r",
+    errorbar=None
+)
+
+plt.xlabel("Life Expectancy (Years)", fontsize=14)
+plt.ylabel("Country", fontsize=14)
+plt.title("Top 20 Countries by Life Expectancy", fontsize=16, fontweight='bold')
+plt.grid(axis="x", linestyle="--", alpha=0.7)
+plt.tight_layout()
+plt.show()
+```
+---
+
+# World Map Visualizing Life Expectancy by Country
+
+<div style="text-align: justify;">
+The figure below provides a world map visualization of life expectancy by country. Geographic patterns emerge, with countries in North America, Europe, and parts of Asia displaying higher life expectancy, while many African nations show lower figures. This spatial representation helps identify regional disparities and health inequities on a global scale.
+</div>
+
+
+```{python}
+#| echo: true
+#| fig-cap: "World Map Visualizing Life Expectancy by Country"
+#| label: fig-world-map
+
+# Load world shapefile and merge with life expectancy data
+world = gpd.read_file(r"D:\Arpitha_College\SEM-1\BAA 1030\Quarto_assignment\110m_cultural\ne_110m_admin_0_countries.shp")
+world = world.merge(metadata, left_on="SOVEREIGNT", right_on="country", how="left")
+
+# Create a choropleth map of life expectancy by country
+# This figure reveals global geographic patterns in life expectancy and highlights regional disparities
+world.plot(
+    column="Life expectancy at birth, total (years)",
+    legend=True,
+    legend_kwds={'label': "Life Expectancy by Country", 'orientation': "horizontal"},
+    figsize=(10, 8)
+)
+
+plt.title("Global Life Expectancy Map", fontsize=16, fontweight='bold')
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+```
+---
